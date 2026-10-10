@@ -236,6 +236,27 @@ API Key 不应写入仓库、配置文件或 README。运行说明见 [`docs/ste
 - [`docs/step5_detection_and_cropping.md`](docs/step5_detection_and_cropping.md)：检测和裁剪
 - [`docs/step6_7_rectify_enhance.md`](docs/step6_7_rectify_enhance.md)：透视矫正和增强
 - [`docs/step9_ocr_postprocess.md`](docs/step9_ocr_postprocess.md)：OCR 后处理
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)：远程协作流程
+
+## 远程协作
+
+克隆仓库并创建自己的功能分支：
+
+```powershell
+git clone https://github.com/xuwei3378153167-commits/BookSpineTextRecognition.git
+cd BookSpineTextRecognition
+git switch -c feat/your-change
+```
+
+建议每个功能或修复使用独立分支，完成后推送分支并创建 Pull Request：
+
+```powershell
+git add README.md scripts docs
+git commit -m "feat: describe the change"
+git push -u origin feat/your-change
+```
+
+不要提交 `dataset/`、`dependencies/`、`weights/`、`crops/`、`outputs/`、API Key 或其他本地运行产物。合并前请至少完成相关脚本的本地试跑，并在 Pull Request 中说明运行环境和验证结果。
 
 ## 许可证
 
