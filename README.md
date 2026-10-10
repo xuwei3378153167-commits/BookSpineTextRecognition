@@ -20,7 +20,7 @@
 - 对书脊进行旋转矩形透视矫正，并生成彩色、CLAHE 和灰度版本。
 - 支持 PaddleOCR CPU、EasyOCR GPU、RapidOCR ONNX GPU 三种本地 OCR 路径。
 - OCR 结果支持断点续跑，并输出 JSON、CSV 和人工复核队列。
-- 可选地只将低置信度书脊裁剪图提交给兼容 OpenAI Chat Completions 的视觉模型复核。
+- 全流程支持命令行批处理、结构化结果输出和本地 FastAPI 服务。
 
 ## 数据集
 
@@ -201,19 +201,6 @@ RapidOCR ONNX GPU：
 
 这些指标来自项目现有测试集运行结果，不代表在其他数据集上的性能保证。
 
-## 可选：低置信度视觉复核
-
-本地 OCR 是默认路径。只有在需要时，才可以使用 `scripts/vlm_review_low_confidence.py` 对低置信度的单本书脊裁剪图进行复核。该功能需要在当前 PowerShell 会话中设置：
-
-```powershell
-$env:VLM_BASE_URL = 'https://api.example.com/v1'
-$env:VLM_MODEL = 'your-vision-model'
-$env:VLM_API_KEY = Read-Host 'API Key'
-.\dependencies\venv\Scripts\python.exe .\scripts\vlm_review_low_confidence.py --dry-run
-```
-
-API Key 不应写入仓库、配置文件或 README。运行说明见 [`docs/step8_vlm_review.md`](docs/step8_vlm_review.md)。
-
 ## 项目结构
 
 ```text
@@ -222,6 +209,7 @@ API Key 不应写入仓库、配置文件或 README。运行说明见 [`docs/ste
 ├── docs/                           # 分步骤实现说明
 ├── scripts/                        # 数据准备、训练、检测、OCR 和后处理脚本
 ├── data.yaml                       # YOLO 数据配置
+├── app.py                          # 本地 FastAPI 服务
 ├── README.md
 └── .gitignore
 ```
@@ -236,6 +224,7 @@ API Key 不应写入仓库、配置文件或 README。运行说明见 [`docs/ste
 - [`docs/step5_detection_and_cropping.md`](docs/step5_detection_and_cropping.md)：检测和裁剪
 - [`docs/step6_7_rectify_enhance.md`](docs/step6_7_rectify_enhance.md)：透视矫正和增强
 - [`docs/step9_ocr_postprocess.md`](docs/step9_ocr_postprocess.md)：OCR 后处理
+- [`docs/step10_14_completion.md`](docs/step10_14_completion.md)：完整流水线、评估和本地部署
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)：远程协作流程
 
 ## 远程协作
@@ -256,7 +245,7 @@ git commit -m "feat: describe the change"
 git push -u origin feat/your-change
 ```
 
-不要提交 `dataset/`、`dependencies/`、`weights/`、`crops/`、`outputs/`、API Key 或其他本地运行产物。合并前请至少完成相关脚本的本地试跑，并在 Pull Request 中说明运行环境和验证结果。
+不要提交 `dataset/`、`dependencies/`、`weights/`、`crops/`、`outputs/`、凭据或其他本地运行产物。合并前请至少完成相关脚本的本地试跑，并在 Pull Request 中说明运行环境和验证结果。
 
 ## 许可证
 

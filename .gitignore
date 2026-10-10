@@ -1,5 +1,5 @@
 # Third-party VLM credentials. Keep personal copies outside version control.
-config/vlm.env
+config/*.env
 .env
 
 # Local datasets and generated image data. The dataset is documented by URL in README.md.

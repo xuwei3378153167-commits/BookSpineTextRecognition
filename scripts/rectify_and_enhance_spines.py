@@ -58,6 +58,22 @@ def enhance(image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return enhanced, gray
 
 
+def read_image(path: Path) -> np.ndarray:
+    """Read Windows paths containing non-ASCII characters reliably."""
+    data = np.fromfile(str(path), dtype=np.uint8)
+    image = cv2.imdecode(data, cv2.IMREAD_COLOR)
+    if image is None:
+        raise ValueError(f'Cannot read crop: {path}')
+    return image
+
+
+def write_image(path: Path, image: np.ndarray) -> None:
+    encoded_ok, encoded = cv2.imencode(path.suffix or '.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    if not encoded_ok:
+        raise ValueError(f'Cannot encode image: {path}')
+    encoded.tofile(str(path))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True, help='Step 5 detections.json')
@@ -75,17 +91,15 @@ def main() -> None:
             out_dir.mkdir(parents=True, exist_ok=True)
             stem = f"spine_{int(detection['index']):03d}"
             try:
-                image = cv2.imread(str(crop_path), cv2.IMREAD_COLOR)
-                if image is None:
-                    raise ValueError(f'Cannot read crop: {crop_path}')
+                image = read_image(crop_path)
                 warped, geometry = rectify(image, detection['polygon'], detection['crop_box_xyxy'])
                 enhanced, gray = enhance(warped)
                 rectified_path = out_dir / f'{stem}_rectified.jpg'
                 enhanced_path = out_dir / f'{stem}_clahe.jpg'
                 gray_path = out_dir / f'{stem}_gray.jpg'
-                cv2.imwrite(str(rectified_path), warped, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                cv2.imwrite(str(enhanced_path), enhanced, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                cv2.imwrite(str(gray_path), gray, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                write_image(rectified_path, warped)
+                write_image(enhanced_path, enhanced)
+                write_image(gray_path, gray)
                 rows.append({'image': image_row['image'], 'index': detection['index'],
                              'confidence': detection['confidence'], 'source_crop': str(crop_path),
                              'rectified_path': str(rectified_path), 'clahe_path': str(enhanced_path),

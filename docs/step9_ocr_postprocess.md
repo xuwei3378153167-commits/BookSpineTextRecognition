@@ -31,6 +31,7 @@ outputs\ocr_rapid_gpu_test\ocr_results.json
 | 文件 | 用途 |
 |---|---|
 | `ocr_postprocessed.json` | 按原图和书架顺序组织的全量结构化结果 |
+| `books_by_image.json` | 第十步使用的按图片分组结果 |
 | `ocr_postprocessed.csv` | 可在表格软件中筛选和核验的全量结果 |
 | `review_queue.csv` | 仅包含空文本、低置信度、方向歧义或检测较弱的记录 |
 | `summary.json` | 总数、质量分级、错误数和复核数量 |
@@ -45,7 +46,7 @@ medium：0.55 <= confidence < 0.80
 low：confidence < 0.55
 ```
 
-`review_queue.csv` 默认收录置信度低于 `0.55` 的结果，也会收录空文本、少于两个字符、四方向分数接近的结果。该队列供人工检查或第八步的可选视觉模型复核使用。
+`review_queue.csv` 默认收录置信度低于 `0.55` 的结果，也会收录空文本、少于两个字符或四方向分数接近的结果，供人工检查。
 
 ## 调整阈值
 

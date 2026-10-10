@@ -62,12 +62,18 @@ def crop_key(path: str | Path) -> tuple[str, int | None]:
     return match.group(1), int(match.group(2))
 
 
-def build_metadata(preprocess: dict[str, Any], detections: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]]:
+def build_metadata(
+    preprocess: dict[str, Any], detections: dict[str, Any]
+) -> tuple[dict[tuple[str, int], dict[str, Any]], dict[str, dict[str, Any]]]:
     metadata: dict[tuple[str, int], dict[str, Any]] = {}
+    by_crop: dict[str, dict[str, Any]] = {}
     for item in preprocess.get("items", []):
-        key = crop_key(item.get("clahe_path", ""))
-        if key[1] is not None:
-            metadata[key] = dict(item)
+        index = item.get("index")
+        source = Path(item.get("image", "")).stem
+        if index is not None:
+            metadata[(source, int(index))] = dict(item)
+        if item.get("clahe_path"):
+            by_crop[normalize(item["clahe_path"])] = dict(item)
 
     detection_by_image: dict[str, dict[str, Any]] = {}
     for image in detections.get("images", []):
@@ -84,7 +90,10 @@ def build_metadata(preprocess: dict[str, Any], detections: dict[str, Any]) -> di
                     "detection": detection,
                 }
             )
-    return metadata
+            clahe_path = metadata[key].get("clahe_path")
+            if clahe_path:
+                by_crop[normalize(clahe_path)] = metadata[key]
+    return metadata, by_crop
 
 
 def center_and_size(detection: dict[str, Any]) -> tuple[float, float, float]:
@@ -147,7 +156,9 @@ def main() -> int:
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     ocr_payload = load_json(args.ocr.resolve())
-    metadata = build_metadata(load_json(args.preprocess.resolve()), load_json(args.detections.resolve()))
+    metadata, metadata_by_crop = build_metadata(
+        load_json(args.preprocess.resolve()), load_json(args.detections.resolve())
+    )
 
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     errors = 0
@@ -164,9 +175,13 @@ def main() -> int:
         item["error"] = item.get("error", "")
         if item["error"]:
             errors += 1
-        meta = metadata.get((source, index or -1), {})
+        meta = metadata_by_crop.get(normalize(source_path), {})
+        if not meta:
+            meta = metadata.get((source, index or -1), {})
         detection = meta.get("detection", {})
-        item["source_image"] = meta.get("source_image") or f"{source}.jpg"
+        item["source_image"] = meta.get("image") or meta.get("source_image") or f"{source}.jpg"
+        if item["book_id"] is None and meta.get("index") is not None:
+            item["book_id"] = int(meta["index"])
         item["detection_confidence"] = round(float(detection.get("confidence", 0.0) or 0.0), 6)
         if detection:
             center_x, center_y, box_height = center_and_size(detection)
@@ -208,6 +223,34 @@ def main() -> int:
         },
     }
     (output / "ocr_postprocessed.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    grouped_payload = {
+        "source": str(args.ocr.resolve()),
+        "images": [
+            {
+                "image": source_image,
+                "books": [
+                    {
+                        "id": item.get("book_id"),
+                        "text": item.get("text", ""),
+                        "confidence": item.get("confidence", 0.0),
+                        "quality": item.get("quality", "low"),
+                        "direction": item.get("direction"),
+                        "bbox": item.get("bbox_xyxy"),
+                        "crop_path": item.get("crop_path"),
+                        "row": item.get("row", 1),
+                        "column": item.get("column", 1),
+                        "needs_review": item.get("needs_review", False),
+                        "review_reasons": item.get("review_reasons", []),
+                    }
+                    for item in records
+                ],
+            }
+            for source_image, records in sorted(grouped.items())
+        ],
+    }
+    (output / "books_by_image.json").write_text(
+        json.dumps(grouped_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     write_csv(output / "ocr_postprocessed.csv", all_records)
     write_csv(output / "review_queue.csv", review_records)
     (output / "summary.json").write_text(json.dumps(payload["summary"], ensure_ascii=False, indent=2), encoding="utf-8")

@@ -461,6 +461,8 @@ YOLO 返回的目标顺序不固定，应根据书脊中心点排序。单行书
 
 ## 第十一步：建立完整推理脚本
 
+第十步至第十四步的可执行实现和验收命令见 [后续步骤完成说明](step10_14_completion.md)。完整流水线入口为 `scripts/run_book_spine_pipeline.py`，评估入口为 `scripts/evaluate_pipeline.py`。
+
 完整脚本至少应包含以下模块：
 
 ```text
@@ -558,14 +560,6 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 6. 输出文字、置信度和裁剪图片路径。
 
 完成最小版本后，再增加多版本图像增强、书名词典匹配、低置信度复核界面和 ONNX 部署。
-
-## 第十五步：低置信度视觉模型复核（可选）
-
-本项目已实现“本地优先、低置信度才调用第三方视觉模型”的复核脚本。它只会上传 OCR 为空或置信度低于 `0.55` 的单张书脊裁剪图；当前测试结果中为 223 张，不会上传整张书架图或其余高置信度书脊。原始本地 OCR 结果不会被覆盖。
-
-双击 `scripts\\run_low_confidence_vlm.bat`，按提示输入第三方服务的 OpenAI 兼容 Base URL、视觉模型名（可留空自动查询）和 API Key。API Key 为隐藏输入，只在本次运行的环境变量中使用，不写入项目。
-
-复核完成后，查看 `outputs\\vlm_review_low_confidence\\review_results.csv` 对比本地和视觉模型文本，使用 `ocr_results_merged.json` 读取合并后的全量结果。完整接口要求、试跑命令、断点续跑和输出说明见 [低置信度视觉模型复核](step8_vlm_review.md)。
 
 ## 最终推荐配置
 

@@ -75,12 +75,13 @@ def recognize(ocr, path: Path) -> dict:
 
 def save(output: Path, input_dir: Path, records: dict[str, dict], elapsed: float) -> None:
     items = sorted(records.values(), key=lambda item: item["image"])
-    (output / "ocr_results.json").write_text(json.dumps({"input": str(input_dir), "engine": "rapidocr-onnx-gpu", "records": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+    engines = sorted({str(item.get("engine", "")) for item in items if item.get("engine")})
+    (output / "ocr_results.json").write_text(json.dumps({"input": str(input_dir), "engine": engines[0] if len(engines) == 1 else engines, "records": items}, ensure_ascii=False, indent=2), encoding="utf-8")
     fields = ["image", "engine", "text", "confidence", "quality", "direction", "error"]
     with (output / "ocr_results.csv").open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader()
         writer.writerows({field: item.get(field, "") for field in fields} for item in items)
-    summary = {"records": len(items), "errors": sum(bool(item.get("error")) for item in items), "nonempty_text": sum(bool(item.get("text")) for item in items), "rapidocr_gpu_records": sum(item.get("engine") == "rapidocr-onnx-gpu" for item in items), "elapsed_seconds_this_run": round(time.time() - elapsed, 2)}
+    summary = {"records": len(items), "errors": sum(bool(item.get("error")) for item in items), "nonempty_text": sum(bool(item.get("text")) for item in items), "rapidocr_gpu_records": sum(item.get("engine") == "rapidocr-onnx-gpu" for item in items), "rapidocr_cpu_records": sum(item.get("engine") == "rapidocr-onnx-cpu" for item in items), "elapsed_seconds_this_run": round(time.time() - elapsed, 2)}
     (output / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -93,13 +94,19 @@ def main() -> int:
     if opt.max_images: pending = pending[:opt.max_images]
     prepare_cuda()
     import onnxruntime as ort
-    if "CUDAExecutionProvider" not in ort.get_available_providers(): raise RuntimeError("未检测到 ONNX CUDA Provider")
+    use_cuda = "CUDAExecutionProvider" in ort.get_available_providers()
     from rapidocr_onnxruntime import RapidOCR
-    ocr = RapidOCR(det_use_cuda=True, det_model_path=None, rec_use_cuda=True, rec_model_path=None, cls_use_cuda=True, cls_model_path=None, text_score=0)
+    if not pending:
+        raise RuntimeError(f"未找到待识别的 *_clahe.jpg 图片: {opt.input.resolve()}")
+    engine = "rapidocr-onnx-gpu" if use_cuda else "rapidocr-onnx-cpu"
+    print(f"RapidOCR device: {'CUDA' if use_cuda else 'CPU'}")
+    ocr = RapidOCR(det_use_cuda=use_cuda, det_model_path=None, rec_use_cuda=use_cuda, rec_model_path=None, cls_use_cuda=use_cuda, cls_model_path=None, text_score=0)
     started = time.time()
     for index, path in enumerate(pending, 1):
         try: record = recognize(ocr, path)
-        except Exception as exc: record = {"image": str(path), "engine": "rapidocr-onnx-gpu", "error": f"{type(exc).__name__}: {exc}"}
+        except Exception as exc: record = {"image": str(path), "engine": engine, "error": f"{type(exc).__name__}: {exc}"}
+        if not record.get("error"):
+            record["engine"] = engine
         records[str(path.resolve())] = record; save(output, opt.input.resolve(), records, started)
         print(f"[{index}/{len(pending)}] {path.name}: {record.get('text','')[:40]} ({record.get('confidence',0):.3f})")
     save(output, opt.input.resolve(), records, started); print((output / "summary.json").read_text(encoding="utf-8")); return 0

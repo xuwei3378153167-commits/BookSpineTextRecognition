@@ -39,7 +39,7 @@
 - `dependencies/`：项目本地虚拟环境、缓存和模型依赖
 - `weights/`：本地模型权重
 - `crops/`、`outputs/`：裁剪图、OCR 结果和评估产物
-- API Key、`config/vlm.env`、`.env` 及其他凭据
+- API Key、`config/*.env`、`.env` 及其他凭据
 
 这些路径已写入根目录 `.gitignore`。如果误将大文件加入暂存区，请先执行：
 
