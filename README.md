@@ -214,6 +214,16 @@ RapidOCR ONNX GPU：
 └── .gitignore
 ```
 
+## 窗口识别程序
+
+运行下面的程序可以打开本地窗口。用户可以输入本地图片路径或图片 URL，程序会调用训练好的 YOLO 模型和本地 OCR，在窗口中显示检测图、书脊文字、置信度和识别方向。
+
+```powershell
+.\dependencies\venv\Scripts\python.exe .\scripts\book_spine_gui.py
+```
+
+窗口默认使用 RapidOCR GPU；没有可用 CUDA 时，可以在窗口中选择 `paddle-cpu`。识别过程产生的下载图片、裁剪图、增强图和 JSON 只存放在临时目录，关闭窗口后自动删除，不会写入项目的 `outputs/` 目录。
+
 以下目录属于本地运行产物，默认不会提交到 GitHub：`dataset/`、`dependencies/`、`weights/`、`crops/`、`outputs/` 和 `Ultralytics/`。
 
 ## 相关文档
@@ -225,6 +235,7 @@ RapidOCR ONNX GPU：
 - [`docs/step6_7_rectify_enhance.md`](docs/step6_7_rectify_enhance.md)：透视矫正和增强
 - [`docs/step9_ocr_postprocess.md`](docs/step9_ocr_postprocess.md)：OCR 后处理
 - [`docs/step10_14_completion.md`](docs/step10_14_completion.md)：完整流水线、评估和本地部署
+- [`docs/gui_usage.md`](docs/gui_usage.md)：窗口识别程序使用说明
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)：远程协作流程
 
 ## 远程协作
