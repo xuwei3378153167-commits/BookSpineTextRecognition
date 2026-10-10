@@ -1,0 +1,23 @@
+# Third-party VLM credentials. Keep personal copies outside version control.
+config/vlm.env
+.env
+
+# Local datasets and generated image data. The dataset is documented by URL in README.md.
+dataset/
+crops/
+outputs/
+
+# Local models and training/runtime dependencies.
+weights/
+dependencies/
+Ultralytics/
+runs/
+
+# Python and tool caches.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local input files.
+input/
