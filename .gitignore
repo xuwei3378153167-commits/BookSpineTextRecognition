@@ -1,4 +1,4 @@
-# Third-party VLM credentials. Keep personal copies outside version control.
+# Local credentials. Keep personal copies outside version control.
 config/*.env
 .env
 
