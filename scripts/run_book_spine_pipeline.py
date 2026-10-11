@@ -19,8 +19,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=ROOT / "outputs/pipeline_runs")
     parser.add_argument("--weights", type=Path, default=ROOT / "outputs/training/book-spine-yolo11n-seg-20261008/weights/best.pt")
     parser.add_argument("--detect-device", default="0", help="YOLO device: 0, cpu, or auto")
-    parser.add_argument("--ocr-engine", choices=["rapid-gpu", "paddle-cpu"], default="rapid-gpu")
-    parser.add_argument("--ocr-device", choices=["cpu", "gpu:0"], default="cpu")
+    parser.add_argument("--ocr-engine", choices=["rapid-gpu", "paddle-cpu", "paddle-gpu"], default="rapid-gpu")
+    parser.add_argument(
+        "--ocr-device",
+        choices=["cpu", "gpu:0"],
+        default=None,
+        help="PaddleOCR device; defaults to gpu:0 for paddle-gpu and cpu otherwise",
+    )
     parser.add_argument("--keep-run-id", default="", help="Use a stable output directory name")
     return parser.parse_args()
 
@@ -35,6 +40,7 @@ def main() -> int:
     source = args.source.resolve()
     if not source.exists():
         raise FileNotFoundError(source)
+    ocr_device = args.ocr_device or ("gpu:0" if args.ocr_engine == "paddle-gpu" else "cpu")
     run_id = args.keep_run_id.strip() or f"run-{uuid.uuid4().hex[:12]}"
     run_root = args.output.resolve() / run_id
     detected = run_root / "detected"
@@ -61,7 +67,7 @@ def main() -> int:
              "--output", str(ocr_output), "--resume-from", str(empty_resume)])
     else:
         run([python, str(ROOT / "scripts/ocr_book_spines.py"), "--input", str(preprocessed),
-             "--output", str(ocr_output), "--device", args.ocr_device])
+             "--output", str(ocr_output), "--device", ocr_device])
     run([python, str(ROOT / "scripts/postprocess_ocr_results.py"), "--ocr", str(ocr_output / "ocr_results.json"),
          "--preprocess", str(preprocessed / "preprocess.json"), "--detections", str(detected / "detections.json"),
          "--output", str(postprocessed)])

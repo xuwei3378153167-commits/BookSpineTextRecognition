@@ -18,7 +18,7 @@
 - 本地 YOLO 书脊实例分割，保留每个书脊的多边形和检测框。
 - 自动生成掩码裁剪图、原始矩形裁剪图、检测可视化图。
 - 对书脊进行旋转矩形透视矫正，并生成彩色、CLAHE 和灰度版本。
-- 支持 PaddleOCR CPU、EasyOCR GPU、RapidOCR ONNX GPU 三种本地 OCR 路径。
+- 支持 PaddleOCR CPU、PaddleOCR GPU、EasyOCR GPU、RapidOCR ONNX GPU 多种本地 OCR 路径。
 - OCR 结果支持断点续跑，并输出 JSON、CSV 和人工复核队列。
 - 全流程支持命令行批处理、结构化结果输出和本地 FastAPI 服务。
 
@@ -79,7 +79,7 @@ call .\dependencies\venv\Scripts\activate.bat
 .\dependencies\venv\Scripts\python.exe -m pip install easyocr rapidocr_onnxruntime
 ```
 
-GPU 版 PaddlePaddle 的 Windows/CUDA 支持可能随版本变化；如果自动安装失败，请按本机 CUDA 版本安装官方兼容 wheel。
+GPU 版 PaddlePaddle 的 Windows/CUDA 支持可能随版本变化。安装脚本会先尝试 PaddlePaddle 官方源，官方源不可达时自动回退到官方 CDN（`paddle-whl.bj.bcebos.com`）下载 wheel，再从 PyPI 解析该 wheel 声明的 CUDA 运行库依赖（`cu130` 对应 CUDA 13 系列）。如果仍然失败，请按本机 CUDA 版本手动安装官方兼容 wheel。
 
 ## 快速运行现有模型
 
@@ -143,6 +143,17 @@ RapidOCR ONNX GPU：
 ```
 
 两种 GPU 脚本都会尝试四个方向：原始方向、顺时针 90 度、逆时针 90 度和 180 度，并选择综合置信度最高的结果。
+
+PaddleOCR GPU（使用项目内已安装的 PaddlePaddle GPU wheel）：
+
+```powershell
+.\dependencies\venv\Scripts\python.exe .\scripts\ocr_book_spines.py `
+  --input .\crops\preprocessed `
+  --output .\outputs\ocr_paddle_gpu_test `
+  --device gpu:0
+```
+
+该路径需要安装 CUDA 13 版 PaddlePaddle GPU 依赖；`cu126` 及更早的构建在 Blackwell（RTX 50 系）上会出现逐元素算子异常，详见上文“窗口识别程序”一节的说明。
 
 ### 5. OCR 后处理
 
@@ -223,19 +234,19 @@ RapidOCR ONNX GPU：
 .\desktop\publish\BookSpineTextRecognition.exe
 ```
 
-窗口默认使用 RapidOCR GPU；没有可用 CUDA 时，可以在窗口中选择 PaddleOCR CPU，并将 YOLO 设备填写为 `cpu`。识别过程产生的下载图片、裁剪图、增强图和 JSON 只存放在临时目录，关闭窗口后自动删除，不会写入项目的 `outputs/` 目录。
+窗口的 OCR 引擎下拉框提供 `RapidOCR GPU`、`PaddleOCR GPU` 和 `PaddleOCR CPU` 三个选项，默认使用 RapidOCR GPU；没有可用 CUDA 时，可以选择 PaddleOCR CPU，并将 YOLO 设备填写为 `cpu`。识别过程产生的下载图片、裁剪图、增强图和 JSON 只存放在临时目录，关闭窗口后自动删除，不会写入项目的 `outputs/` 目录。
 
-PaddleOCR 已纳入项目本地 Python 环境。默认部署保留 PaddleOCR 3.7 和 PaddlePaddle GPU 版，并支持 CUDA 12.6：
+PaddleOCR 已纳入项目本地 Python 环境。默认部署保留 PaddleOCR 3.7 和 PaddlePaddle GPU 版，并使用对 Blackwell（RTX 50 系）可用的 CUDA 13.0 运行时：
 
 ```powershell
-cmd /c .\scripts\install_dependencies.bat gpu cu126
+cmd /c .\scripts\install_dependencies.bat gpu cu130
 ```
 
 WinUI 程序会优先调用 `dependencies\venv\Scripts\python.exe`；PaddleOCR 首次运行所需模型会缓存到本机用户目录，不上传到仓库。
 
-CPU 部署命令为 `cmd /c .\scripts\install_dependencies.bat cpu`。已有 `paddlepaddle-gpu` 时保留该包，通过 `device=cpu` 推理；仅在没有 GPU 包时安装 `paddlepaddle==3.2.2`，避免两个包覆盖同一目录。GPU 包使用 PaddlePaddle 官方源下载，不依赖本机配置的镜像源。
+CPU 部署命令为 `cmd /c .\scripts\install_dependencies.bat cpu`。已有 `paddlepaddle-gpu` 时保留该包，通过 `device=cpu` 推理；仅在没有 GPU 包时安装 `paddlepaddle==3.2.2`，避免两个包覆盖同一目录。GPU 包使用 PaddlePaddle 官方源下载，不依赖本机配置的镜像源；官方源不可达时回退到官方 CDN。
 
-2026-10-11 本机验证：已恢复 `paddlepaddle-gpu==3.3.1`（CUDA 12.6），CPU 模式真实书脊 OCR 测试通过。RTX 5060 上 `gpu:0` 可启动，但该组合输出文字异常，GPU 识别准确性尚未通过验证；窗口继续使用默认 RapidOCR GPU 或 PaddleOCR CPU。不能仅凭 GPU 初始化成功或高置信度判断识别正确。
+2026-10-11 本机验证：RTX 5060 Laptop（计算能力 sm_120 / Blackwell）此前使用 `cu126` 版 `paddlepaddle-gpu==3.3.1` 时逐元素算子恒返回 0，导致 GPU 识别文字异常。改用 `cu130` 版 wheel（CUDA 13.0、cuDNN 9.13）后逐元素算子、矩阵运算和真实书脊 OCR 均恢复正常。同一批 40 张书脊图 GPU 与 CPU 文字 38/40 完全一致，其余 2 张仅字符顺序轻微差异；GPU 约 10 秒，CPU 约 470 秒，约 46 倍加速。窗口的 `PaddleOCR GPU` 选项已恢复可用。
 
 WinUI 3 的原生运行时不能安全地合并为单个文件，因此发布目录包含主程序 `BookSpineTextRecognition.exe` 和相邻的 Windows App SDK 运行依赖；用户直接启动这个 EXE 即可。模型权重、项目 Python 虚拟环境和脚本仍需保留在项目目录中。
 

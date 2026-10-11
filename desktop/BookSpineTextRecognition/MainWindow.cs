@@ -43,8 +43,9 @@ public sealed class MainWindow : Window
     {
         Title = "本地书脊文字识别";
         _addressBox = new TextBox { Height = 42, PlaceholderText = "输入本地路径，或粘贴 http:// / https:// 图片地址" };
-        _engineBox = new ComboBox { Width = 150, SelectedIndex = 0 };
+        _engineBox = new ComboBox { Width = 168, SelectedIndex = 0 };
         _engineBox.Items.Add(new ComboBoxItem { Content = "RapidOCR GPU", Tag = "rapid-gpu" });
+        _engineBox.Items.Add(new ComboBoxItem { Content = "PaddleOCR GPU", Tag = "paddle-gpu" });
         _engineBox.Items.Add(new ComboBoxItem { Content = "PaddleOCR CPU", Tag = "paddle-cpu" });
         _engineBox.SelectedIndex = 0;
         _deviceBox = new TextBox { Text = "0", Width = 70, Height = 34 };

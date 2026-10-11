@@ -109,16 +109,39 @@ echo [INFO] Installing GPU PyTorch (%CUDA_TAG%)...
 if errorlevel 1 goto install_failed
 
 echo [INFO] Installing GPU PaddlePaddle (%CUDA_TAG%)...
-echo [WARN] If PaddlePaddle has no matching Windows wheel, install its official wheel for your CUDA version manually.
+REM The GPU wheel is only published on PaddlePaddle's own servers, never on PyPI.
+REM Its declared CUDA runtime packages (cu13 for cu130) are resolved from PyPI.
+set "PADDLE_VERSION=3.3.1"
+set "PADDLE_WHEEL_DIR=%INSTALL_ROOT%\paddle-wheels\%CUDA_TAG%"
+if not exist "%PADDLE_WHEEL_DIR%" mkdir "%PADDLE_WHEEL_DIR%"
+set "PY_TAG="
+"%VENV_PYTHON%" -c "import sys;print('cp{}{}'.format(*sys.version_info[:2]))" > "%TEMP%\paddle_pytag.txt"
+set /p PY_TAG=<"%TEMP%\paddle_pytag.txt"
+del /q "%TEMP%\paddle_pytag.txt" 2>nul
+if "%PY_TAG%"=="" set "PY_TAG=cp313"
+set "PADDLE_WHEEL_NAME=paddlepaddle_gpu-%PADDLE_VERSION%-%PY_TAG%-%PY_TAG%-win_amd64.whl"
+set "PADDLE_WHEEL_FILE=%PADDLE_WHEEL_DIR%\%PADDLE_WHEEL_NAME%"
 REM Download first so a network failure leaves the installed runtime intact.
-"%VENV_PYTHON%" -m pip download --no-deps --dest "%INSTALL_ROOT%\paddle-wheels\%CUDA_TAG%" --index-url https://www.paddlepaddle.org.cn/packages/stable/%CUDA_TAG%/ paddlepaddle-gpu==3.3.1
-if errorlevel 1 goto install_failed
+if exist "%PADDLE_WHEEL_FILE%" (
+    echo [INFO] Reusing cached wheel: %PADDLE_WHEEL_FILE%
+    goto install_paddle_wheel
+)
+echo [INFO] Downloading %PADDLE_WHEEL_NAME% from the PaddlePaddle official source...
+"%VENV_PYTHON%" -m pip download --no-deps --dest "%PADDLE_WHEEL_DIR%" --index-url https://www.paddlepaddle.org.cn/packages/stable/%CUDA_TAG%/ paddlepaddle-gpu==%PADDLE_VERSION%
+if errorlevel 1 (
+    echo [WARN] The PaddlePaddle official source is unreachable; falling back to the CDN.
+    echo [WARN] This is expected on networks where a mirror proxy blocks the official host.
+    del /q "%PADDLE_WHEEL_FILE%" 2>nul
+    curl -fL --retry 3 --retry-delay 2 -o "%PADDLE_WHEEL_FILE%" "https://paddle-whl.bj.bcebos.com/stable/%CUDA_TAG%/paddlepaddle-gpu/%PADDLE_WHEEL_NAME%"
+    if errorlevel 1 goto install_failed
+)
+:install_paddle_wheel
+if not exist "%PADDLE_WHEEL_FILE%" goto install_failed
 REM Both distributions own the paddle directory; never install them together.
 "%VENV_PYTHON%" -m pip uninstall -y paddlepaddle
 if errorlevel 1 goto install_failed
-"%VENV_PYTHON%" -m pip install --force-reinstall --no-deps --no-index --find-links "%INSTALL_ROOT%\paddle-wheels\%CUDA_TAG%" paddlepaddle-gpu==3.3.1
-if errorlevel 1 goto install_failed
-"%VENV_PYTHON%" -m pip install --index-url https://pypi.org/simple paddlepaddle-gpu==3.3.1
+REM Install the local GPU wheel and let pip resolve its CUDA runtime deps from PyPI.
+"%VENV_PYTHON%" -m pip install --find-links "%PADDLE_WHEEL_DIR%" --index-url https://pypi.org/simple paddlepaddle-gpu==%PADDLE_VERSION%
 if errorlevel 1 goto install_failed
 
 :install_ocr
