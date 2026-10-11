@@ -21,3 +21,12 @@ __pycache__/
 
 # Local input files.
 input/
+
+# WinUI 3 build and publish output.
+desktop/**/bin/
+desktop/**/obj/
+desktop/publish/
+desktop/dist/
+desktop/*.log
+desktop/tests/**/bin/
+desktop/tests/**/obj/

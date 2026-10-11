@@ -216,13 +216,16 @@ RapidOCR ONNX GPU：
 
 ## 窗口识别程序
 
-运行下面的程序可以打开本地窗口。用户可以输入本地图片路径或图片 URL，程序会调用训练好的 YOLO 模型和本地 OCR，在窗口中显示检测图、书脊文字、置信度和识别方向。
+运行下面的 WinUI 3 程序可以打开本地窗口。用户可以输入本地图片路径或图片 URL，程序会调用训练好的 YOLO 模型和本地 OCR，在窗口中显示检测图、书脊文字、置信度和识别方向。
 
 ```powershell
-.\dependencies\venv\Scripts\python.exe .\scripts\book_spine_gui.py
+.\scripts\publish_winui.ps1
+.\desktop\publish\BookSpineTextRecognition.exe
 ```
 
-窗口默认使用 RapidOCR GPU；没有可用 CUDA 时，可以在窗口中选择 `paddle-cpu`。识别过程产生的下载图片、裁剪图、增强图和 JSON 只存放在临时目录，关闭窗口后自动删除，不会写入项目的 `outputs/` 目录。
+窗口默认使用 RapidOCR GPU；没有可用 CUDA 时，可以在窗口中选择 PaddleOCR CPU，并将 YOLO 设备填写为 `cpu`。识别过程产生的下载图片、裁剪图、增强图和 JSON 只存放在临时目录，关闭窗口后自动删除，不会写入项目的 `outputs/` 目录。
+
+WinUI 3 的原生运行时不能安全地合并为单个文件，因此发布目录包含主程序 `BookSpineTextRecognition.exe` 和相邻的 Windows App SDK 运行依赖；用户直接启动这个 EXE 即可。模型权重、项目 Python 虚拟环境和脚本仍需保留在项目目录中。
 
 以下目录属于本地运行产物，默认不会提交到 GitHub：`dataset/`、`dependencies/`、`weights/`、`crops/`、`outputs/` 和 `Ultralytics/`。
 
