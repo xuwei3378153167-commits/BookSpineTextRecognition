@@ -90,8 +90,14 @@ if errorlevel 1 goto install_failed
 if /I "%MODE%"=="gpu" goto install_gpu
 
 echo [INFO] Installing CPU PaddlePaddle...
+"%VENV_PYTHON%" -m pip show paddlepaddle-gpu >nul 2>&1
+if not errorlevel 1 (
+    echo [INFO] Keeping the existing GPU wheel; it also supports CPU inference.
+    goto install_cpu_torch
+)
 "%VENV_PYTHON%" -m pip install --index-url https://pypi.org/simple paddlepaddle==3.2.2
 if errorlevel 1 goto install_failed
+:install_cpu_torch
 echo [INFO] Installing CPU PyTorch...
 "%VENV_PYTHON%" -m pip install torch torchvision
 if errorlevel 1 goto install_failed
@@ -104,7 +110,15 @@ if errorlevel 1 goto install_failed
 
 echo [INFO] Installing GPU PaddlePaddle (%CUDA_TAG%)...
 echo [WARN] If PaddlePaddle has no matching Windows wheel, install its official wheel for your CUDA version manually.
-"%VENV_PYTHON%" -m pip install paddlepaddle-gpu --extra-index-url https://www.paddlepaddle.org.cn/packages/stable/%CUDA_TAG%/
+REM Download first so a network failure leaves the installed runtime intact.
+"%VENV_PYTHON%" -m pip download --no-deps --dest "%INSTALL_ROOT%\paddle-wheels\%CUDA_TAG%" --index-url https://www.paddlepaddle.org.cn/packages/stable/%CUDA_TAG%/ paddlepaddle-gpu==3.3.1
+if errorlevel 1 goto install_failed
+REM Both distributions own the paddle directory; never install them together.
+"%VENV_PYTHON%" -m pip uninstall -y paddlepaddle
+if errorlevel 1 goto install_failed
+"%VENV_PYTHON%" -m pip install --force-reinstall --no-deps --no-index --find-links "%INSTALL_ROOT%\paddle-wheels\%CUDA_TAG%" paddlepaddle-gpu==3.3.1
+if errorlevel 1 goto install_failed
+"%VENV_PYTHON%" -m pip install --index-url https://pypi.org/simple paddlepaddle-gpu==3.3.1
 if errorlevel 1 goto install_failed
 
 :install_ocr
@@ -122,7 +136,7 @@ if /I "%MODE%"=="gpu" (
 if errorlevel 1 goto install_failed
 
 echo [INFO] Verifying installed packages...
-"%VENV_PYTHON%" -c "import cv2, numpy, torch, ultralytics, paddle, paddleocr; print('Dependency verification passed'); print('Torch CUDA:', torch.cuda.is_available()); print('Paddle device:', paddle.device.get_device())"
+"%VENV_PYTHON%" -c "import sys; sys.path.insert(0, 'scripts'); from ocr_book_spines import configure_paddle_windows_dlls; configure_paddle_windows_dlls(); import paddle; import torch, ultralytics, paddleocr; print('Dependency import verification passed (not an OCR accuracy test)'); print('Torch CUDA:', torch.cuda.is_available()); print('Paddle CUDA build:', paddle.is_compiled_with_cuda())"
 if errorlevel 1 goto verify_failed
 
 echo.

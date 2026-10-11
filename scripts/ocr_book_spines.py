@@ -182,13 +182,12 @@ def main() -> int:
     # PyTorch even for CPU inference. Configure the project-local DLL search
     # path before importing PaddleOCR in every mode.
     configure_paddle_windows_dlls()
-    if args.device.startswith("gpu"):
-        # Import Paddle before PaddleX/PaddleOCR constructs inference objects.
-        # This fixes Windows DLL load ordering for cuDNN 9.
-        import paddle
+    # The GPU wheel also loads CUDA DLLs when CPU inference is selected.
+    # Import it before PaddleX can load conflicting native libraries.
+    import paddle
 
-        paddle.set_device(args.device)
-        print(f"Paddle device: {paddle.device.get_device()}")
+    paddle.set_device(args.device)
+    print(f"Paddle device: {paddle.device.get_device()}")
     from paddleocr import PaddleOCR
 
     ocr_kwargs = {
@@ -197,6 +196,8 @@ def main() -> int:
         "use_doc_orientation_classify": False,
         "use_doc_unwarping": False,
         "use_textline_orientation": True,
+        # Avoid unsupported oneDNN PIR attributes with Paddle GPU wheels on CPU.
+        "enable_mkldnn": False,
     }
     if args.model_dir:
         # PaddleOCR 3.x accepts model directories through these optional keys.

@@ -233,7 +233,9 @@ cmd /c .\scripts\install_dependencies.bat gpu cu126
 
 WinUI 程序会优先调用 `dependencies\venv\Scripts\python.exe`；PaddleOCR 首次运行所需模型会缓存到本机用户目录，不上传到仓库。
 
-如果机器没有 NVIDIA GPU，可显式安装 CPU 兼容版：`cmd /c .\scripts\install_dependencies.bat cpu`。CPU 模式会安装 `paddlepaddle==3.2.2`，会替换当前环境中的 PaddlePaddle GPU 包；需要恢复 GPU 时重新运行 GPU 安装命令即可。
+CPU 部署命令为 `cmd /c .\scripts\install_dependencies.bat cpu`。已有 `paddlepaddle-gpu` 时保留该包，通过 `device=cpu` 推理；仅在没有 GPU 包时安装 `paddlepaddle==3.2.2`，避免两个包覆盖同一目录。GPU 包使用 PaddlePaddle 官方源下载，不依赖本机配置的镜像源。
+
+2026-10-11 本机验证：已恢复 `paddlepaddle-gpu==3.3.1`（CUDA 12.6），CPU 模式真实书脊 OCR 测试通过。RTX 5060 上 `gpu:0` 可启动，但该组合输出文字异常，GPU 识别准确性尚未通过验证；窗口继续使用默认 RapidOCR GPU 或 PaddleOCR CPU。不能仅凭 GPU 初始化成功或高置信度判断识别正确。
 
 WinUI 3 的原生运行时不能安全地合并为单个文件，因此发布目录包含主程序 `BookSpineTextRecognition.exe` 和相邻的 Windows App SDK 运行依赖；用户直接启动这个 EXE 即可。模型权重、项目 Python 虚拟环境和脚本仍需保留在项目目录中。
 

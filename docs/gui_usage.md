@@ -26,7 +26,9 @@ cmd /c .\scripts\install_dependencies.bat gpu cu126
 
 PaddleOCR 的模型会在首次初始化时下载并缓存到本机用户目录；模型文件和 Python 依赖不提交到 GitHub。窗口程序会优先调用项目内的 `dependencies\venv\Scripts\python.exe`。
 
-没有 NVIDIA GPU 时可以运行 `cmd /c .\scripts\install_dependencies.bat cpu` 安装 CPU 版 PaddlePaddle。该操作会替换当前 PaddlePaddle GPU 包；恢复 GPU 部署时重新运行 GPU 命令即可。
+运行 `cmd /c .\scripts\install_dependencies.bat cpu` 时会保留已有的 PaddlePaddle GPU 包；该包也能用于 CPU 推理。只有没有 GPU 包时才安装 CPU 版，避免混装。
+
+2026-10-11 本机已恢复 PaddlePaddle GPU 3.3.1（CUDA 12.6）。窗口的 `paddle-cpu` 选项经真实图片验证可用；脚本 `--device gpu:0` 能运行但识别文字异常，尚不能作为可靠识别结果。窗口暂不提供 PaddleOCR GPU 选项，默认 RapidOCR GPU 不变。
 
 程序不会把输入图片、下载内容、裁剪图、增强图或 OCR JSON 写入项目目录。所有中间文件位于程序创建的临时目录，关闭窗口时自动删除。窗口运行期间也不提供保存结果的按钮。
 
