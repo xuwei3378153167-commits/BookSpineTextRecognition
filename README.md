@@ -225,6 +225,16 @@ RapidOCR ONNX GPU：
 
 窗口默认使用 RapidOCR GPU；没有可用 CUDA 时，可以在窗口中选择 PaddleOCR CPU，并将 YOLO 设备填写为 `cpu`。识别过程产生的下载图片、裁剪图、增强图和 JSON 只存放在临时目录，关闭窗口后自动删除，不会写入项目的 `outputs/` 目录。
 
+PaddleOCR 已纳入项目本地 Python 环境。默认部署保留 PaddleOCR 3.7 和 PaddlePaddle GPU 版，并支持 CUDA 12.6：
+
+```powershell
+cmd /c .\scripts\install_dependencies.bat gpu cu126
+```
+
+WinUI 程序会优先调用 `dependencies\venv\Scripts\python.exe`；PaddleOCR 首次运行所需模型会缓存到本机用户目录，不上传到仓库。
+
+如果机器没有 NVIDIA GPU，可显式安装 CPU 兼容版：`cmd /c .\scripts\install_dependencies.bat cpu`。CPU 模式会安装 `paddlepaddle==3.2.2`，会替换当前环境中的 PaddlePaddle GPU 包；需要恢复 GPU 时重新运行 GPU 安装命令即可。
+
 WinUI 3 的原生运行时不能安全地合并为单个文件，因此发布目录包含主程序 `BookSpineTextRecognition.exe` 和相邻的 Windows App SDK 运行依赖；用户直接启动这个 EXE 即可。模型权重、项目 Python 虚拟环境和脚本仍需保留在项目目录中。
 
 以下目录属于本地运行产物，默认不会提交到 GitHub：`dataset/`、`dependencies/`、`weights/`、`crops/`、`outputs/` 和 `Ultralytics/`。

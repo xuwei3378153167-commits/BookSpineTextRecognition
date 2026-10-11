@@ -18,6 +18,16 @@ WinUI 3 程序使用项目现有的 `run_book_spine_pipeline.py` 完成 YOLO 书
 
 默认 OCR 引擎是 `rapid-gpu`，需要可用的 ONNX CUDA 环境。CPU 环境请选择 `paddle-cpu`；YOLO 检测设备也应填写为 `cpu`。
 
+项目的 `dependencies\venv` 已包含 PaddleOCR 3.7，并按 GPU 部署保留 PaddlePaddle GPU 包。首次部署或重新创建 GPU 环境时，运行下面的命令安装 CUDA 12.6 依赖：
+
+```powershell
+cmd /c .\scripts\install_dependencies.bat gpu cu126
+```
+
+PaddleOCR 的模型会在首次初始化时下载并缓存到本机用户目录；模型文件和 Python 依赖不提交到 GitHub。窗口程序会优先调用项目内的 `dependencies\venv\Scripts\python.exe`。
+
+没有 NVIDIA GPU 时可以运行 `cmd /c .\scripts\install_dependencies.bat cpu` 安装 CPU 版 PaddlePaddle。该操作会替换当前 PaddlePaddle GPU 包；恢复 GPU 部署时重新运行 GPU 命令即可。
+
 程序不会把输入图片、下载内容、裁剪图、增强图或 OCR JSON 写入项目目录。所有中间文件位于程序创建的临时目录，关闭窗口时自动删除。窗口运行期间也不提供保存结果的按钮。
 
 ## 发布说明

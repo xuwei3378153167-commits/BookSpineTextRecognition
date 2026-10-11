@@ -39,8 +39,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def configure_paddle_gpu_dlls() -> None:
-    """Make the project-local CUDA DLLs visible before Paddle is imported."""
+def configure_paddle_windows_dlls() -> None:
+    """Make project-local native DLLs visible before PaddleX/PaddleOCR imports."""
     if os.name != "nt":
         return
     import sysconfig
@@ -178,8 +178,11 @@ def main() -> int:
     completed = {str(Path(x.get("image", "")).resolve()) for x in records if x.get("image")}
 
     os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+    # PaddleOCR 3.x loads PaddleX and may resolve native dependencies from
+    # PyTorch even for CPU inference. Configure the project-local DLL search
+    # path before importing PaddleOCR in every mode.
+    configure_paddle_windows_dlls()
     if args.device.startswith("gpu"):
-        configure_paddle_gpu_dlls()
         # Import Paddle before PaddleX/PaddleOCR constructs inference objects.
         # This fixes Windows DLL load ordering for cuDNN 9.
         import paddle

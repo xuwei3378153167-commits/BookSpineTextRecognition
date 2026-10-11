@@ -90,7 +90,7 @@ if errorlevel 1 goto install_failed
 if /I "%MODE%"=="gpu" goto install_gpu
 
 echo [INFO] Installing CPU PaddlePaddle...
-"%VENV_PYTHON%" -m pip install paddlepaddle
+"%VENV_PYTHON%" -m pip install --index-url https://pypi.org/simple paddlepaddle==3.2.2
 if errorlevel 1 goto install_failed
 echo [INFO] Installing CPU PyTorch...
 "%VENV_PYTHON%" -m pip install torch torchvision
@@ -109,7 +109,7 @@ if errorlevel 1 goto install_failed
 
 :install_ocr
 echo [INFO] Installing computer vision, OCR and deployment packages...
-"%VENV_PYTHON%" -m pip install ultralytics opencv-python numpy pillow pyyaml tqdm rapidfuzz paddleocr fastapi uvicorn python-multipart onnx
+"%VENV_PYTHON%" -m pip install ultralytics opencv-python numpy pillow pyyaml tqdm rapidfuzz paddleocr==3.7.0 fastapi uvicorn python-multipart onnx
 if errorlevel 1 goto install_failed
 
 if /I "%MODE%"=="gpu" (
