@@ -16,7 +16,9 @@
 
 WinUI 3 程序使用项目现有的 `run_book_spine_pipeline.py` 完成 YOLO 书脊分割、透视矫正和本地 OCR。结果区域显示每个书脊的文字、置信度、质量等级和方向，左侧显示带检测框的图片。
 
-OCR 引擎下拉框提供 `RapidOCR GPU`、`PaddleOCR GPU` 和 `PaddleOCR CPU` 三个选项，默认 `rapid-gpu`，需要可用的 ONNX CUDA 环境。`paddle-gpu` 使用项目内 PaddlePaddle GPU wheel，并自动以 `gpu:0` 运行 OCR。纯 CPU 环境请选择 `paddle-cpu`；YOLO 检测设备也应填写为 `cpu`。
+OCR 引擎下拉框提供 `RapidOCR GPU`、`PaddleOCR GPU`、`PaddleOCR CPU` 和 `PaddleOCR-VL 1.6 GPU` 四个选项，默认 `rapid-gpu`，需要可用的 ONNX CUDA 环境。`paddle-gpu` 使用项目内 PaddlePaddle GPU wheel，并自动以 `gpu:0` 运行 OCR。纯 CPU 环境请选择 `paddle-cpu`；YOLO 检测设备也应填写为 `cpu`。
+
+`PaddleOCR-VL 1.6 GPU` 使用项目内官方预训练权重，无需微调，安装和独立识别入口见 [PaddleOCR-VL 1.6 使用说明](paddlevl16_usage.md)。它识别矫正后的彩色书脊图，置信度显示“未提供”，质量显示“待核验”；平均置信度不计算没有分数的记录。2026-10-18 已在本机通过窗口完成真实识别，样例标题“名人名言录”正确，细小的编者文字仍需核验。
 
 项目的 `dependencies\venv` 已包含 PaddleOCR 3.7，并按 GPU 部署保留 PaddlePaddle GPU 包。首次部署或重新创建 GPU 环境时，运行下面的命令安装 CUDA 13.0 依赖（对 Blackwell / RTX 50 系可用）：
 

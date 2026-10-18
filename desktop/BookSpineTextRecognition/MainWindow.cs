@@ -80,7 +80,7 @@ public sealed class MainWindow : Window
         _zoomText.MinWidth = 44;
         _zoomText.TextAlignment = TextAlignment.Center;
         _previewCaption = Text("支持 JPG、PNG、BMP、WEBP · 最大 50 MB", 12, _muted);
-        foreach (var (label, tag) in new[] { ("RapidOCR GPU", "rapid-gpu"), ("PaddleOCR GPU", "paddle-gpu"), ("PaddleOCR CPU", "paddle-cpu") })
+        foreach (var (label, tag) in new[] { ("RapidOCR GPU", "rapid-gpu"), ("PaddleOCR GPU", "paddle-gpu"), ("PaddleOCR CPU", "paddle-cpu"), ("PaddleOCR-VL 1.6 GPU", "paddlevl16-gpu") })
             _engineBox.Items.Add(new ComboBoxItem { Content = label, Tag = tag });
         _engineBox.SelectedIndex = 0;
         Name(_addressBox, "图片地址"); Name(_engineBox, "OCR 引擎"); Name(_deviceBox, "YOLO 设备");
@@ -404,16 +404,17 @@ public sealed class MainWindow : Window
             var view = new BookResultView
             {
                 Id = book.Id ?? _results.Count + 1, Text = string.IsNullOrWhiteSpace(book.Text) ? "（未识别）" : book.Text,
-                Confidence = book.Confidence.ToString("0.000"),
+                Confidence = book.Confidence?.ToString("0.000") ?? "未提供",
                 ConfidenceValue = book.Confidence,
-                Quality = book.Quality switch { "high" => "高", "medium" => "中", "low" => "低", _ => book.Quality },
+                Quality = book.Quality switch { "high" => "高", "medium" => "中", "low" => "低", "unknown" => "待核验", _ => book.Quality },
                 Direction = book.Direction switch { "normal" => "原始", "clockwise" => "顺时针", "counterclockwise" => "逆时针", "180" => "180°", _ => book.Direction },
             };
             _results.Add(view);
         }
         RefreshResults();
         _detectedCount.Text = books.Count.ToString(); _recognizedCount.Text = books.Count(book => !string.IsNullOrWhiteSpace(book.Text)).ToString();
-        _averageConfidence.Text = books.Count == 0 ? "—" : $"{books.Average(book => book.Confidence):P0}";
+        var scoredBooks = books.Where(book => book.Confidence.HasValue).ToList();
+        _averageConfidence.Text = scoredBooks.Count == 0 ? "—" : $"{scoredBooks.Average(book => book.Confidence.GetValueOrDefault()):P0}";
         _detectedButton.IsEnabled = true; _detectedButton.IsChecked = true; _originalButton.IsChecked = false;
         await ShowPreviewAsync(result.AnnotatedImagePath);
         if (books.Count == 0) Notice("没有检测到书脊", "请尝试书脊更清晰、角度更正的照片。", InfoBarSeverity.Informational);
@@ -447,7 +448,7 @@ public sealed class MainWindow : Window
         var text = Text(book.Text, 15, _ink, FontWeights.SemiBold); text.TextWrapping = TextWrapping.Wrap; text.IsTextSelectionEnabled = true; content.Children.Add(text);
         var details = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var high = book.Quality == "高";
-        var quality = new Border { Background = Brush(high ? "#EBF0E5" : book.Quality == "中" ? "#FAEFD7" : "#F9E4DE"), CornerRadius = new CornerRadius(4), Padding = new Thickness(6, 2, 6, 2), Child = Text($"{book.Quality}质量", 11, Brush(high ? "#4F6846" : "#92513B")) };
+        var quality = new Border { Background = Brush(high ? "#EBF0E5" : book.Quality == "中" ? "#FAEFD7" : "#F9E4DE"), CornerRadius = new CornerRadius(4), Padding = new Thickness(6, 2, 6, 2), Child = Text(book.Quality == "待核验" ? "待核验" : $"{book.Quality}质量", 11, Brush(high ? "#4F6846" : "#92513B")) };
         details.Children.Add(quality); details.Children.Add(Text($"置信度 {book.Confidence}", 11, _muted)); details.Children.Add(Text($"方向 · {book.Direction}", 11, _muted));
         content.Children.Add(details); Place(grid, content, 0, 1);
         var menu = new MenuFlyout(); var copy = new MenuFlyoutItem { Text = "复制此条文字", Icon = new SymbolIcon(Symbol.Copy) };

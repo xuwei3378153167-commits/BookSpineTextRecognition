@@ -155,6 +155,16 @@ PaddleOCR GPU（使用项目内已安装的 PaddlePaddle GPU wheel）：
 
 该路径需要安装 CUDA 13 版 PaddlePaddle GPU 依赖；`cu126` 及更早的构建在 Blackwell（RTX 50 系）上会出现逐元素算子异常，详见上文“窗口识别程序”一节的说明。
 
+### PaddleOCR-VL 1.6
+
+新增 PaddleOCR-VL 1.6 本地图片识别入口（使用项目内 GPU 环境、官方预训练权重，无需微调）：
+
+```powershell
+.\scripts\run_paddlevl16.bat --input "你的图片.jpg"
+```
+
+安装、批处理和参数见 [PaddleOCR-VL 1.6 使用说明](docs/paddlevl16_usage.md)。该入口可以独立处理书脊裁图；WinUI 引擎选择器已增加 `PaddleOCR-VL 1.6 GPU`，书脊流水线使用 `--ocr-engine paddlevl16-gpu`。
+
 ### 5. OCR 后处理
 
 后处理会清洗字符、关联检测坐标、按书架行列排序，并生成低置信度复核队列：

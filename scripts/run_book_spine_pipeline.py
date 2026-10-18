@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=ROOT / "outputs/pipeline_runs")
     parser.add_argument("--weights", type=Path, default=ROOT / "outputs/training/book-spine-yolo11n-seg-20261008/weights/best.pt")
     parser.add_argument("--detect-device", default="0", help="YOLO device: 0, cpu, or auto")
-    parser.add_argument("--ocr-engine", choices=["rapid-gpu", "paddle-cpu", "paddle-gpu"], default="rapid-gpu")
+    parser.add_argument("--ocr-engine", choices=["rapid-gpu", "paddle-cpu", "paddle-gpu", "paddlevl16-gpu"], default="rapid-gpu")
     parser.add_argument(
         "--ocr-device",
         choices=["cpu", "gpu:0"],
@@ -65,6 +65,9 @@ def main() -> int:
     if args.ocr_engine == "rapid-gpu":
         run([python, str(ROOT / "scripts/ocr_book_spines_rapid_gpu.py"), "--input", str(preprocessed),
              "--output", str(ocr_output), "--resume-from", str(empty_resume)])
+    elif args.ocr_engine == "paddlevl16-gpu":
+        run([python, str(ROOT / "scripts/ocr_paddlevl16.py"), "--input", str(preprocessed),
+             "--output", str(ocr_output), "--book-spines", "--device", "cuda:0"])
     else:
         run([python, str(ROOT / "scripts/ocr_book_spines.py"), "--input", str(preprocessed),
              "--output", str(ocr_output), "--device", ocr_device])

@@ -72,8 +72,9 @@ def build_metadata(
         source = Path(item.get("image", "")).stem
         if index is not None:
             metadata[(source, int(index))] = dict(item)
-        if item.get("clahe_path"):
-            by_crop[normalize(item["clahe_path"])] = dict(item)
+        for path_key in ("clahe_path", "rectified_path", "gray_path"):
+            if item.get(path_key):
+                by_crop[normalize(item[path_key])] = dict(item)
 
     detection_by_image: dict[str, dict[str, Any]] = {}
     for image in detections.get("images", []):
@@ -90,9 +91,10 @@ def build_metadata(
                     "detection": detection,
                 }
             )
-            clahe_path = metadata[key].get("clahe_path")
-            if clahe_path:
-                by_crop[normalize(clahe_path)] = metadata[key]
+            for path_key in ("clahe_path", "rectified_path", "gray_path"):
+                crop_path = metadata[key].get(path_key)
+                if crop_path:
+                    by_crop[normalize(crop_path)] = metadata[key]
     return metadata, by_crop
 
 
@@ -126,8 +128,12 @@ def review_reasons(record: dict[str, Any], threshold: float) -> list[str]:
     reasons: list[str] = []
     if not record.get("text"):
         reasons.append("empty_text")
-    if float(record.get("confidence", 0.0)) < threshold:
+    if record.get("confidence") is None:
+        reasons.append("confidence_unavailable")
+    elif float(record.get("confidence", 0.0)) < threshold:
         reasons.append("low_confidence")
+    if record.get("hit_token_limit"):
+        reasons.append("output_truncated")
     if len(record.get("text", "")) < 2:
         reasons.append("short_text")
     candidates = record.get("candidates") or []
@@ -167,8 +173,12 @@ def main() -> int:
         source, index = crop_key(source_path)
         item = dict(source_record)
         item["text"] = clean_text(item.get("text", ""))
-        item["confidence"] = round(float(item.get("confidence", 0.0) or 0.0), 6)
-        item["quality"] = quality(item["confidence"], args.medium_threshold, args.high_threshold)
+        if source_record.get("confidence_available") is False:
+            item["confidence"] = None
+            item["quality"] = "unknown"
+        else:
+            item["confidence"] = round(float(item.get("confidence", 0.0) or 0.0), 6)
+            item["quality"] = quality(item["confidence"], args.medium_threshold, args.high_threshold)
         item["book_id"] = index
         item["source_key"] = source
         item["crop_path"] = source_path
@@ -218,6 +228,7 @@ def main() -> int:
             "high": sum(item.get("quality") == "high" for item in all_records),
             "medium": sum(item.get("quality") == "medium" for item in all_records),
             "low": sum(item.get("quality") == "low" for item in all_records),
+            "unknown": sum(item.get("quality") == "unknown" for item in all_records),
             "needs_review": len(review_records),
             "source_images": len(grouped),
         },

@@ -199,6 +199,7 @@ public sealed class PipelineRunner : IDisposable
                 var value when value.Contains("detect_and_crop_spines.py") => new PipelineProgress(1, "正在检测并分割书脊…"),
                 var value when value.Contains("rectify_and_enhance_spines.py") => new PipelineProgress(2, "正在矫正角度并增强图片…"),
                 var value when value.Contains("ocr_book_spines") => new PipelineProgress(3, "正在识别书脊文字…"),
+                var value when value.Contains("ocr_paddlevl16.py") => new PipelineProgress(3, "正在使用 PaddleOCR-VL 1.6 识别书脊文字…"),
                 var value when value.Contains("postprocess_ocr_results.py") => new PipelineProgress(4, "正在整理识别结果…"),
                 _ => null,
             };
