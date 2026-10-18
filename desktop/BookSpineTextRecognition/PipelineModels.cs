@@ -40,6 +40,7 @@ public sealed class BookResultView
     public int Id { get; init; }
     public string Text { get; init; } = "（未识别）";
     public string Confidence { get; init; } = "0.000";
+    public double ConfidenceValue { get; init; }
     public string Quality { get; init; } = string.Empty;
     public string Direction { get; init; } = string.Empty;
 }

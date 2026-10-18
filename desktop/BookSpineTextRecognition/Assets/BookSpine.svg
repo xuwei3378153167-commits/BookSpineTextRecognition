@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <title>本地书脊文字识别</title>
+  <desc>陶土色圆角底板，米白扫描取景框与三本书脊。四角外透明。</desc>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="#DA7756"/>
+  <g stroke="#FFF7EB" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 82V57Q44 46 55 46H80M176 46H201Q212 46 212 57V82M212 174V199Q212 210 201 210H176M80 210H55Q44 210 44 199V174"/>
+  </g>
+  <rect x="70" y="88" width="28" height="92" rx="6" fill="#FFF7EB"/>
+  <rect x="107" y="70" width="29" height="110" rx="6" fill="#FFF7EB"/>
+  <g transform="rotate(-12 164 180)">
+    <rect x="151" y="90" width="27" height="90" rx="6" fill="#FFF7EB"/>
+    <path d="M158 108H171M158 159H171" stroke="#DA7756" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <path d="M78 106H90M78 158H90M115 89H128M115 97H128M115 158H128" stroke="#DA7756" stroke-width="5" stroke-linecap="round"/>
+</svg>

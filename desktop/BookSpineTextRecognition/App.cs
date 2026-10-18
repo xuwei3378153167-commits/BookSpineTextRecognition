@@ -22,6 +22,14 @@ public partial class App : Application, IXamlMetadataProvider
         // The native Application is fully initialized by this point.
         Resources = new ResourceDictionary();
         Resources.MergedDictionaries.Add(new Microsoft.UI.Xaml.Controls.XamlControlsResources());
+        // Native focus, selection and toggle accents share the brand palette.
+        var accent = Microsoft.UI.ColorHelper.FromArgb(255, 218, 119, 86);
+        Resources["SystemAccentColor"] = accent;
+        Resources["SystemAccentColorLight1"] = accent;
+        Resources["SystemAccentColorDark1"] = Microsoft.UI.ColorHelper.FromArgb(255, 162, 74, 46);
+        Resources["AccentFillColorDefaultBrush"] = new Microsoft.UI.Xaml.Media.SolidColorBrush(accent);
+        Resources["AccentFillColorSecondaryBrush"] = new Microsoft.UI.Xaml.Media.SolidColorBrush(accent);
+        Resources["SystemControlHighlightAccentBrush"] = new Microsoft.UI.Xaml.Media.SolidColorBrush(accent);
         MainWindow = new MainWindow();
         MainWindow.Activate();
     }

@@ -6,6 +6,7 @@
     <RootNamespace>BookSpineTextRecognition</RootNamespace>
     <AssemblyName>BookSpineTextRecognition</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\BookSpine.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -23,6 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Assets\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PRIResource Include="Strings\zh-CN\Resources.resw" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.9169" PrivateAssets="all" />

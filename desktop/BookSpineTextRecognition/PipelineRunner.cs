@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace BookSpineTextRecognition;
@@ -10,12 +11,13 @@ public sealed class PipelineRunner : IDisposable
     private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".webp"];
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(30) };
     private Process? _runningProcess;
+    private InferenceJob? _runningJob;
 
     public async Task<PipelineRunResult> RunAsync(
         string address,
         string ocrEngine,
         string detectDevice,
-        IProgress<string>? progress,
+        IProgress<PipelineProgress>? progress,
         CancellationToken cancellationToken)
     {
         var projectRoot = ProjectPaths.FindRoot();
@@ -30,8 +32,10 @@ public sealed class PipelineRunner : IDisposable
 
         try
         {
-            progress?.Report("正在准备图片……");
+            progress?.Report(new PipelineProgress(0, "正在准备图片…"));
             var source = await MaterializeSourceAsync(address, temporaryRoot, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new PipelineProgress(0, "图片准备完成，正在启动识别进程…", true));
             var runId = $"winui-{Guid.NewGuid():N}";
             var outputRoot = Path.Combine(temporaryRoot, "runs");
             var script = Path.Combine(projectRoot, "scripts", "run_book_spine_pipeline.py");
@@ -48,7 +52,6 @@ public sealed class PipelineRunner : IDisposable
                 "--keep-run-id", runId,
             };
 
-            progress?.Report("正在运行 YOLO 书脊分割和本地 OCR……");
             var output = await RunProcessAsync(python, projectRoot, arguments, progress, cancellationToken);
             var sessionRoot = Path.Combine(outputRoot, runId);
             var resultPath = Path.Combine(sessionRoot, "postprocessed", "books_by_image.json");
@@ -70,7 +73,7 @@ public sealed class PipelineRunner : IDisposable
                 throw new InvalidOperationException("推理完成但没有找到检测预览图。");
             }
 
-            progress?.Report($"识别完成，共检测到 {structured.Images.Sum(item => item.Books.Count)} 个书脊。");
+            progress?.Report(new PipelineProgress(4, "正在加载识别结果…"));
             return new PipelineRunResult
             {
                 Structured = structured,
@@ -89,6 +92,7 @@ public sealed class PipelineRunner : IDisposable
     {
         try
         {
+            _runningJob?.Terminate();
             if (_runningProcess is { HasExited: false })
             {
                 _runningProcess.Kill(entireProcessTree: true);
@@ -118,7 +122,7 @@ public sealed class PipelineRunner : IDisposable
         string executable,
         string workingDirectory,
         IReadOnlyList<string> arguments,
-        IProgress<string>? progress,
+        IProgress<PipelineProgress>? progress,
         CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo
@@ -129,13 +133,21 @@ public sealed class PipelineRunner : IDisposable
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
         };
+        // The pipeline prints each real subprocess command. Unbuffered output lets
+        // the UI show those stages immediately, without estimating percentages.
+        startInfo.Environment["PYTHONUNBUFFERED"] = "1";
+        startInfo.Environment["PYTHONIOENCODING"] = "utf-8";
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
 
         using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+        using var job = new InferenceJob();
+        _runningJob = job;
         _runningProcess = process;
         try
         {
@@ -144,9 +156,12 @@ public sealed class PipelineRunner : IDisposable
                 throw new InvalidOperationException("无法启动 Python 推理进程。");
             }
 
+            try { job.Assign(process); }
+            catch { Cancel(); throw; }
+
             using var cancelRegistration = cancellationToken.Register(Cancel);
-            var standardOutput = process.StandardOutput.ReadToEndAsync();
-            var standardError = process.StandardError.ReadToEndAsync();
+            var standardOutput = ReadOutputAsync(process.StandardOutput, progress);
+            var standardError = ReadOutputAsync(process.StandardError, null);
             // Keep the window alive until all children and output streams close,
             // so cancellation can delete the temporary results reliably.
             await process.WaitForExitAsync();
@@ -163,13 +178,33 @@ public sealed class PipelineRunner : IDisposable
         catch (OperationCanceledException)
         {
             Cancel();
-            progress?.Report("已取消识别。");
             throw;
         }
         finally
         {
             _runningProcess = null;
+            _runningJob = null;
         }
+    }
+
+    private static async Task<string> ReadOutputAsync(StreamReader reader, IProgress<PipelineProgress>? progress)
+    {
+        var output = new StringBuilder();
+        while (await reader.ReadLineAsync() is { } line)
+        {
+            output.AppendLine(line);
+            if (!line.StartsWith("$ ", StringComparison.Ordinal)) continue;
+            var stage = line switch
+            {
+                var value when value.Contains("detect_and_crop_spines.py") => new PipelineProgress(1, "正在检测并分割书脊…"),
+                var value when value.Contains("rectify_and_enhance_spines.py") => new PipelineProgress(2, "正在矫正角度并增强图片…"),
+                var value when value.Contains("ocr_book_spines") => new PipelineProgress(3, "正在识别书脊文字…"),
+                var value when value.Contains("postprocess_ocr_results.py") => new PipelineProgress(4, "正在整理识别结果…"),
+                _ => null,
+            };
+            if (stage is not null) progress?.Report(stage);
+        }
+        return output.ToString();
     }
 
     private async Task<string> MaterializeSourceAsync(
